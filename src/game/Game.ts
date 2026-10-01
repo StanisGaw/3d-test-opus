@@ -5,6 +5,7 @@ import { WorldView } from './gfx/worldView.ts';
 import { captureCheckpoint, restoreBuild, restoreLoadout } from './play/checkpoint.ts';
 import { Sfx } from './systems/audio.ts';
 import { Input } from './systems/input.ts';
+import { TouchControls, isTouchDevice } from './systems/touch.ts';
 import { PAD, PLAY_BUTTONS, PadReader, type MenuAction as PadMenuAction, menuAction, screenToMapDir } from './systems/gamepad.ts';
 import { SCREEN_RIGHT, SCREEN_UP, SIN_ELEVATION } from './gfx/iso.ts';
 import type { TrackId } from './systems/music.ts';
@@ -60,6 +61,7 @@ export class Game implements GameFlow {
   private wasReloading = false;
   private readonly padReader = new PadReader();
   private pad: Gamepad | null = null;
+  private touch: TouchControls | null = null;
 
   constructor(container: HTMLElement, hudRoot: HTMLElement) {
     this.stage = new Stage(container);
@@ -90,6 +92,7 @@ export class Game implements GameFlow {
       () => this.closeMetaView(),
     );
     this.audio.setMusicEnabled(this.ctx.meta.profile.settings.music);
+    if (isTouchDevice()) this.enableTouch();
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.ctx.playing) this.pause();
@@ -370,6 +373,7 @@ export class Game implements GameFlow {
     this.lastFrame = now;
     if (this.input.aimSource === 'mouse') this.hud.moveCrosshair(this.input.mouseX, this.input.mouseY);
     this.pollPad();
+    this.pollTouch();
     this.handleKeys();
     this.updateMusic();
     const simulating = ctx.state === 'playing' || ctx.state === 'gameover';
@@ -452,6 +456,35 @@ export class Game implements GameFlow {
     const p = this.stage.project(ctx.aimPoint.x, 0.55, ctx.aimPoint.y);
     this.hud.moveCrosshair((p.x * 0.5 + 0.5) * window.innerWidth, (-p.y * 0.5 + 0.5) * window.innerHeight);
     return Math.atan2(a.y, a.x);
+  }
+
+  /** Shows the on-screen controls (phones, tablets) and lets a tap on a weapon slot select it. */
+  private enableTouch(): void {
+    document.body.classList.add('touch');
+    this.touch = new TouchControls(document.body, {
+      key: (code) => this.input.queue(code),
+      cycle: (dir) => {
+        if (this.ctx.playing) this.ctx.arsenal.cycle(dir);
+      },
+    });
+    this.hud.onSlotTap((slot) => {
+      if (this.ctx.playing && !this.ctx.arsenal.selectSlot(slot)) this.hud.toast('NO AMMO');
+    });
+  }
+
+  /** Copies the on-screen sticks into Input; the controls only show while playing. */
+  private pollTouch(): void {
+    const t = this.touch;
+    if (!t) return;
+    const { ctx } = this;
+    const active = ctx.playing && !this.shopView.isOpen && !this.recordsView.isOpen && !this.heroView.isOpen;
+    t.setVisible(active);
+    this.input.touchMove = active ? t.move : { x: 0, y: 0 };
+    this.input.touchFire = active && t.fire;
+    if (active && t.aimed) {
+      this.input.padAim = t.aim;
+      this.input.aimSource = 'pad';
+    }
   }
 
   /** Reads the first connected gamepad: sticks and triggers go to Input, buttons become key presses or menu steps. */

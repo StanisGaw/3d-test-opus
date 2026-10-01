@@ -74,6 +74,7 @@ export class Hud {
   private readonly bannerSub: HTMLElement;
   private readonly banner: HTMLElement;
   private readonly toastEl: HTMLElement;
+  private slotTap: ((slot: number) => void) | null = null;
   private readonly slots: { root: HTMLElement; ammo: HTMLElement }[] = [];
   private readonly crosshair: HTMLElement;
   private readonly vignette: HTMLElement;
@@ -162,6 +163,10 @@ export class Hud {
       el('div', 'slot-name', slot, w.name);
       const ammo = el('div', 'slot-ammo', slot);
       this.slots.push({ root: slot, ammo });
+      slot.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.slotTap?.(w.slot);
+      });
     }
 
     this.abilityBar = el('div', 'ability-bar', root);
@@ -430,6 +435,11 @@ export class Hud {
     }
   }
 
+  /** Called when a weapon slot is tapped (touch screens). */
+  onSlotTap(handler: (slot: number) => void): void {
+    this.slotTap = handler;
+  }
+
   showTitle(info: TitleInfo, actions: readonly MenuAction[]): void {
     this.showScreen('title', (panel) => {
       const h1 = el('h1', '', panel, 'ZOMBIE STRIKE');
@@ -451,6 +461,7 @@ export class Hud {
         ['N', `music ${info.musicOn ? 'on' : 'off'}`],
         ['PAD', 'sticks move & aim · RT shoot · A dash'],
         ['PAD', 'RB grenade · Y mine · B turret · X reload'],
+        ['TOUCH', 'left stick move · right stick aim & shoot'],
       ];
       for (const [key, action] of keys) {
         const row = el('div', '', controls);

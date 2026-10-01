@@ -16,6 +16,10 @@ export class Input {
   padFire = false;
   /** Last right stick direction (screen space, y up). */
   padAim = { x: 1, y: 0 };
+  /** Left on-screen stick (touch screens). */
+  touchMove = { x: 0, y: 0 };
+  /** Right on-screen stick held far enough to shoot. */
+  touchFire = false;
   /** Which device aims: the last one that moved wins. */
   aimSource: 'mouse' | 'pad' = 'mouse';
   private readonly element: HTMLElement;
@@ -87,7 +91,7 @@ export class Input {
 
   /** Mouse button or gamepad trigger held. */
   get shooting(): boolean {
-    return this.firing || this.padFire;
+    return this.firing || this.padFire || this.touchFire;
   }
 
   consumeWheel(): number {
@@ -96,11 +100,12 @@ export class Input {
     return w;
   }
 
-  /** Movement axes in screen space: x = right, y = up. Keyboard wins; otherwise the gamepad stick (analog). */
+  /** Movement axes in screen space: x = right, y = up. Keyboard wins, then the gamepad stick, then the touch stick (analog). */
   moveAxes(): { x: number; y: number } {
     const x = (this.isDown('KeyD') || this.isDown('ArrowRight') ? 1 : 0) - (this.isDown('KeyA') || this.isDown('ArrowLeft') ? 1 : 0);
     const y = (this.isDown('KeyW') || this.isDown('ArrowUp') ? 1 : 0) - (this.isDown('KeyS') || this.isDown('ArrowDown') ? 1 : 0);
     if (x !== 0 || y !== 0) return { x, y };
-    return { x: this.padMove.x, y: this.padMove.y };
+    if (this.padMove.x !== 0 || this.padMove.y !== 0) return { x: this.padMove.x, y: this.padMove.y };
+    return { x: this.touchMove.x, y: this.touchMove.y };
   }
 }

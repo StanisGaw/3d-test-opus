@@ -31,7 +31,7 @@ const MAX_SPECIAL_SHARE = 0.8;
 export const waveStage = (round: number, wave: number): number => (round - 1) * WAVES_PER_ROUND + wave;
 
 /** Stage at which each special kind first appears, so new enemies join the horde one by one. */
-const UNLOCK_STAGE: Record<Exclude<ZombieKind, 'walker'>, number> = {
+export const UNLOCK_STAGE: Record<Exclude<ZombieKind, 'walker'>, number> = {
   runner: 2,
   bat: 3,
   exploder: 4,

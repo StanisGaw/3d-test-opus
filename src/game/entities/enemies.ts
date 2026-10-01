@@ -23,7 +23,7 @@ export interface EnemyWorld {
   hurtPlayer(amount: number, fromX: number, fromY: number): void;
 }
 
-interface EnemyStats {
+export interface EnemyStats {
   hp: number;
   speed: number;
   damage: number;
@@ -33,7 +33,7 @@ interface EnemyStats {
   score: number;
 }
 
-const ZOMBIE_STATS: Record<ZombieKind, EnemyStats> = {
+export const ZOMBIE_STATS: Record<ZombieKind, EnemyStats> = {
   walker: { hp: 30, speed: 1.7, damage: 10, scale: 1, hitRadius: 0.36, bodyRadius: 0.3, score: 10 },
   runner: { hp: 18, speed: 3.4, damage: 7, scale: 0.9, hitRadius: 0.33, bodyRadius: 0.28, score: 15 },
   brute: { hp: 150, speed: 1.15, damage: 22, scale: 1.5, hitRadius: 0.55, bodyRadius: 0.4, score: 40 },
@@ -47,10 +47,10 @@ const ZOMBIE_STATS: Record<ZombieKind, EnemyStats> = {
 export const SHIELD_HP = 80;
 /** Blast of a popping exploder. It hurts the hero and other zombies alike. */
 export const EXPLODER_BLAST = { radius: 2.1, playerDamage: 24, enemyDamage: 45 } as const;
-const EXPLODER_FUSE = 0.6;
-const EXPLODER_TRIGGER = 1.5;
-const SPITTER_RANGE = { min: 4, max: 7.5, fire: 9 } as const;
-const SPITTER_BILE = { speed: 7.5, damage: 9 } as const;
+export const EXPLODER_FUSE = 0.6;
+export const EXPLODER_TRIGGER = 1.5;
+export const SPITTER_RANGE = { min: 4, max: 7.5, fire: 9 } as const;
+export const SPITTER_BILE = { speed: 7.5, damage: 9 } as const;
 
 /** True when a hit travelling along `dir` strikes the front of something facing `face`. */
 export function isFrontalHit(face: { x: number; y: number }, dirX: number, dirY: number): boolean {
@@ -63,7 +63,7 @@ const RISE_TIME = 0.7;
 const DEATH_TIME = 0.55;
 /** How long a body thrown by an explosion stays on screen. */
 const RAGDOLL_TIME = 1.3;
-const ATTACK_COOLDOWN = 0.9;
+export const ATTACK_COOLDOWN = 0.9;
 
 export class Enemy {
   readonly pos: { x: number; y: number };
@@ -542,6 +542,9 @@ export class Bat extends Enemy {
   }
 }
 
+/** Base stats of the boss in round 1; hp grows by `hpPerRound` every round. */
+export const BOSS_STATS = { hp: 1400, hpPerRound: 800, speed: 1.7, damage: 28, chargeDamage: 35, chargeSpeed: 11, scale: 1.9, hitRadius: 1.0, bodyRadius: 0.45, score: 1000 } as const;
+
 type BossState = 'chase' | 'windup' | 'charge' | 'stunned' | 'spit' | 'summon';
 
 export class Boss extends Enemy {
@@ -560,13 +563,13 @@ export class Boss extends Enemy {
       'boss',
       variant.anim,
       {
-        hp: 1400 + 800 * (round - 1),
-        speed: 1.7,
-        damage: 28,
-        scale: 1.9,
-        hitRadius: 1.0,
-        bodyRadius: 0.45,
-        score: 1000 * round,
+        hp: BOSS_STATS.hp + BOSS_STATS.hpPerRound * (round - 1),
+        speed: BOSS_STATS.speed,
+        damage: BOSS_STATS.damage,
+        scale: BOSS_STATS.scale,
+        hitRadius: BOSS_STATS.hitRadius,
+        bodyRadius: BOSS_STATS.bodyRadius,
+        score: BOSS_STATS.score * round,
       },
       assets,
       scene,

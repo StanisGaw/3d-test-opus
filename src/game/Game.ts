@@ -20,6 +20,7 @@ import { CardPickView } from './ui/cardPickView.ts';
 import { FloatingText } from './ui/floatingText.ts';
 import { Hud, type MenuAction } from './ui/hud.ts';
 import { HudPresenter } from './ui/hudPresenter.ts';
+import { BestiaryView } from './ui/bestiaryView.ts';
 import { HeroSelectView, RecordsView, ShopView } from './ui/metaViews.ts';
 import { SkillTreeView } from './ui/skillTreeView.ts';
 import { separateEnemies } from './world/crowd.ts';
@@ -53,6 +54,7 @@ export class Game implements GameFlow {
   private readonly cardView: CardPickView;
   private readonly shopView: ShopView;
   private readonly recordsView: RecordsView;
+  private readonly bestiaryView: BestiaryView;
   private readonly heroView: HeroSelectView;
   private readonly ctx: GameContext;
   private readonly presenter: HudPresenter;
@@ -83,6 +85,7 @@ export class Game implements GameFlow {
     this.cardView = new CardPickView(hudRoot, (id) => this.pickCard(id));
     this.shopView = new ShopView(hudRoot, this.ctx.meta, (id) => this.buyUpgrade(id), () => this.closeMetaView());
     this.recordsView = new RecordsView(hudRoot, this.ctx.meta, () => this.closeMetaView());
+    this.bestiaryView = new BestiaryView(hudRoot, assets, () => this.closeMetaView());
     this.heroView = new HeroSelectView(
       hudRoot,
       this.ctx.meta,
@@ -123,20 +126,23 @@ export class Game implements GameFlow {
     actions.push({ label: 'New game', detail: 'choose a hero', primary: !save, onClick: () => this.openMetaView('heroes') });
     actions.push({ label: 'Base shop', detail: `${ctx.meta.coins} coins`, onClick: () => this.openMetaView('shop') });
     actions.push({ label: 'Records', onClick: () => this.openMetaView('records') });
+    actions.push({ label: 'Bestiary', detail: 'monster stats & attacks', onClick: () => this.openMetaView('bestiary') });
     this.hud.showTitle({ coins: ctx.meta.coins, checkpoint: save ? describeCheckpoint(save) : null, musicOn: this.audio.musicEnabled }, actions);
   }
 
-  private openMetaView(which: 'shop' | 'records' | 'heroes'): void {
+  private openMetaView(which: 'shop' | 'records' | 'heroes' | 'bestiary'): void {
     this.ctx.state = 'title';
     this.hud.hideOverlay();
     if (which === 'shop') this.shopView.open();
     else if (which === 'records') this.recordsView.open();
+    else if (which === 'bestiary') this.bestiaryView.open();
     else this.heroView.open();
   }
 
   private closeMetaView(): void {
     this.shopView.close();
     this.recordsView.close();
+    this.bestiaryView.close();
     this.heroView.close();
     this.showMenu();
   }
@@ -501,7 +507,7 @@ export class Game implements GameFlow {
       this.input.padAim = s.aim;
       this.input.aimSource = 'pad';
     }
-    const inMenu = !ctx.playing || this.shopView.isOpen || this.recordsView.isOpen || this.heroView.isOpen;
+    const inMenu = !ctx.playing || this.shopView.isOpen || this.recordsView.isOpen || this.bestiaryView.isOpen || this.heroView.isOpen;
     for (const button of s.pressed) {
       if (inMenu) {
         const action = menuAction(button);
@@ -518,7 +524,7 @@ export class Game implements GameFlow {
   private padMenu(action: PadMenuAction): void {
     const { ctx } = this;
     if (action === 'back') {
-      if (this.shopView.isOpen || this.recordsView.isOpen || this.heroView.isOpen) this.closeMetaView();
+      if (this.shopView.isOpen || this.recordsView.isOpen || this.bestiaryView.isOpen || this.heroView.isOpen) this.closeMetaView();
       else if (ctx.state === 'skills') this.closeSkills();
       else if (ctx.state === 'paused') this.resume();
       return;
@@ -555,7 +561,7 @@ export class Game implements GameFlow {
         this.toggleMusic();
         continue;
       }
-      if (this.shopView.isOpen || this.recordsView.isOpen || this.heroView.isOpen) {
+      if (this.shopView.isOpen || this.recordsView.isOpen || this.bestiaryView.isOpen || this.heroView.isOpen) {
         if (code === 'Escape') this.closeMetaView();
         continue;
       }
